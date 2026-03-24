@@ -37,6 +37,12 @@
 2. **RDP 桌面**（有图形需求时再开）
 3. **X11 转发**（只适合少量 GUI 程序）
 
+### 桌面环境选择
+
+- **默认桌面路线**：`ubuntu-desktop`，保留官方 Ubuntu 桌面体验
+- **备选低资源路线**：`xfce4 + xrdp`
+- **建议**：如果你的用户更在意“像本地 Ubuntu 一样好上手”，就默认走 `ubuntu-desktop`；如果更在意资源占用和远程流畅度，再切到 XFCE
+
 ### 存储后端
 
 - **快速开始**：`dir`
@@ -292,17 +298,17 @@ ssh -p 22001 dev@192.168.1.10
 
 这种方式通常比 XRDP 更稳、更轻、更省资源。
 
-### 8.3 需要桌面时再装 XRDP
+### 8.3 默认桌面路线：Ubuntu Desktop + XRDP
 
-如果确实要图形桌面，建议改成 **XFCE + XRDP**，不要再把完整 GNOME 桌面当成默认路径。
+如果你希望保留官方 Ubuntu 桌面体验，推荐直接装 `ubuntu-desktop` 再配 XRDP。
 
 在容器内：
 
 ```bash
 apt update
-apt install -y xfce4 xfce4-goodies xrdp
+apt install -y ubuntu-desktop xrdp
 systemctl enable --now xrdp
-echo xfce4-session > /home/dev/.xsession
+echo gnome-session > /home/dev/.xsession
 chown dev:dev /home/dev/.xsession
 ```
 
@@ -316,6 +322,18 @@ lxc config device add gpu-dev-01 rdp proxy \
 ```
 
 Windows 用 `mstsc`，macOS / Linux 用支持 RDP 的客户端连接即可。
+
+### 8.4 备选桌面路线：XFCE + XRDP
+
+如果你更在意资源占用、远程流畅度，或者要在一台宿主机上给很多用户都开桌面，会更适合把 XFCE 当成备选方案：
+
+```bash
+apt update
+apt install -y xfce4 xfce4-goodies xrdp
+systemctl enable --now xrdp
+echo xfce4-session > /home/dev/.xsession
+chown dev:dev /home/dev/.xsession
+```
 
 ---
 
@@ -367,16 +385,22 @@ lxc profile add gpu-dev-01 lab-user
 lxc stop gpu-dev-01
 ```
 
-发布成镜像：
+如果你走默认官方桌面路线，发布成镜像：
 
 ```bash
-lxc publish gpu-dev-01 --alias ubuntu-24.04-gpu-xfce
+lxc publish gpu-dev-01 --alias ubuntu-24.04-gpu-desktop
 ```
 
 以后直接从模板创建：
 
 ```bash
-lxc launch local:ubuntu-24.04-gpu-xfce user01
+lxc launch local:ubuntu-24.04-gpu-desktop user01
+```
+
+如果你走低资源路线，也可以额外做一份 XFCE 模板，例如：
+
+```bash
+lxc publish gpu-dev-01 --alias ubuntu-24.04-gpu-xfce
 ```
 
 模板适合预装这些东西：
@@ -385,7 +409,8 @@ lxc launch local:ubuntu-24.04-gpu-xfce user01
 - git / vim / tmux / htop
 - 常用中文 locale
 - VS Code Remote SSH 友好环境
-- 可选的 xfce4 + xrdp
+- `ubuntu-desktop + xrdp`（默认）
+- `xfce4 + xrdp`（备选）
 - 统一的管理员说明文件
 
 ---
@@ -453,7 +478,7 @@ lxc config device add gpu-dev-01 shared-data disk source=/data/shared path=/mnt/
 | Ubuntu 18.04 | Ubuntu 24.04 / 22.04 |
 | `apt install lxd` | `snap install lxd --channel=5.0/stable` |
 | 第三方旧镜像源 | `ubuntu:` / `ubuntu-minimal:` 官方 remote |
-| 默认完整 GNOME + XRDP | 默认 SSH / VS Code，桌面改成可选 XFCE + XRDP |
+| 默认完整 GNOME + XRDP | 默认仍保留 `ubuntu-desktop` 官方体验，XFCE 改为备选低资源路线 |
 | ZFS 写死为必须项 | ZFS / LVM / dir 按场景选择 |
 | 容器里手工装老驱动 | 宿主机装驱动，容器优先用 runtime + 框架 wheel |
 | 靠老脚本装桌面远程 | 用发行版自己的包管理器维护 |
@@ -474,7 +499,7 @@ lxc config device add gpu-dev-01 shared-data disk source=/data/shared path=/mnt/
 8. 容器里装 `openssh-server git vim tmux`
 9. 用 proxy 暴露 SSH 端口
 10. 日常开发统一走 SSH / VS Code Remote SSH
-11. 只有确实需要桌面时，再装 XFCE + XRDP
+11. 默认需要桌面时装 `ubuntu-desktop + xrdp`，更在意资源占用时再切到 XFCE
 12. 一切配置稳定后，`lxc publish` 做母本
 
 ---
